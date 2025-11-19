@@ -5,7 +5,7 @@
   "license": "MIT",
   "scripts": {
     "dev": "cross-env NODE_ENV=development tsx server/index.ts",
-    "build": "npm install && npx vite build && npm run build:api && npm run build:server",
+    "build": "rm -rf node_modules && cross-env NODE_ENV=development npm install && npx vite build && npm run build:api && npm run build:server",
     "build:api": "npx esbuild api/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist/api --external:express --external:@neondatabase/serverless --external:drizzle-orm --external:stripe --external:openai --external:bcrypt --external:passport --external:node-cron",
     "build:server": "npx esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist --external:vite",
     "start": "cross-env NODE_ENV=production node dist/index.js",
