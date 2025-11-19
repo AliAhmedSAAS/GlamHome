@@ -39,9 +39,13 @@ export default defineConfig(async () => {
         "@assets": path.resolve(import.meta.dirname, "attached_assets"),
       },
     },
+    root: import.meta.dirname,
     build: {
       outDir: path.resolve(import.meta.dirname, "dist/public"),
       emptyOutDir: true,
+      rollupOptions: {
+        input: path.resolve(import.meta.dirname, "index.html"),
+      },
     },
     server: {
       fs: {
