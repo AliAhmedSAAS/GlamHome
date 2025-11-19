@@ -39,13 +39,11 @@ export default defineConfig(async () => {
         "@assets": path.resolve(import.meta.dirname, "attached_assets"),
       },
     },
-    root: path.resolve(import.meta.dirname, "client"),
+    // root option removed - index.html is now at project root for Vite build compatibility
+    publicDir: path.resolve(import.meta.dirname, "client", "public"),
     build: {
       outDir: path.resolve(import.meta.dirname, "dist/public"),
       emptyOutDir: true,
-      rollupOptions: {
-        input: path.resolve(import.meta.dirname, "index.html"),
-      },
     },
     server: {
       fs: {
