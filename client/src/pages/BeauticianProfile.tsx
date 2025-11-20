@@ -201,12 +201,12 @@ export default function BeauticianProfile() {
   const onSubmit = (data: BookingFormData) => {
     if (!isAuthenticated) {
       toast({
-        title: "Sign In Required",
-        description: "Please sign in to book a service.",
+        title: "Account Required",
+        description: "Please create an account to book a service.",
         variant: "default",
       });
       setTimeout(() => {
-        window.location.href = '/login';
+        window.location.href = '/signup';
       }, 1500);
       return;
     }
