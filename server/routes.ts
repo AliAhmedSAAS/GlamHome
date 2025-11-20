@@ -375,18 +375,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Customer Login Route
   app.post('/api/auth/login', async (req, res) => {
     try {
-      const { email, password } = req.body;
+      const { emailOrPhone, password } = req.body;
 
-      if (!email || !password) {
-        return res.status(400).json({ message: "Email and password are required" });
+      if (!emailOrPhone || !password) {
+        return res.status(400).json({ message: "Email/phone and password are required" });
       }
 
-      // Find user by email
+      // Find user by email or phone number
       const allUsers = await storage.getAllUsers();
-      const user = allUsers.find(u => u.email === email);
+      const user = allUsers.find(u => 
+        u.email === emailOrPhone || u.phone === emailOrPhone
+      );
 
       if (!user) {
-        return res.status(401).json({ message: "Invalid email or password" });
+        return res.status(401).json({ message: "Invalid email/phone or password" });
       }
 
       // Check if user has a password (local auth)
@@ -399,7 +401,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const isValidPassword = await bcrypt.compare(password, user.passwordHash);
 
       if (!isValidPassword) {
-        return res.status(401).json({ message: "Invalid email or password" });
+        return res.status(401).json({ message: "Invalid email/phone or password" });
       }
 
       // Create session

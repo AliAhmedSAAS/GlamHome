@@ -15,7 +15,7 @@ import { queryClient } from "@/lib/queryClient";
 import { Link } from "wouter";
 
 const loginSchema = z.object({
-  email: z.string().email("Please enter a valid email address"),
+  emailOrPhone: z.string().min(1, "Email or phone number is required"),
   password: z.string().min(1, "Password is required"),
 });
 
@@ -29,7 +29,7 @@ export default function Login() {
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      email: "",
+      emailOrPhone: "",
       password: "",
     },
   });
@@ -52,7 +52,7 @@ export default function Login() {
       if (!response.ok) {
         toast({
           title: "Login Failed",
-          description: data.message || "Invalid email or password",
+          description: data.message || "Invalid email/phone or password",
           variant: "destructive",
         });
         return;
@@ -110,16 +110,16 @@ export default function Login() {
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                   <FormField
                     control={form.control}
-                    name="email"
+                    name="emailOrPhone"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Email Address</FormLabel>
+                        <FormLabel>Email or Phone Number</FormLabel>
                         <FormControl>
                           <div className="relative">
                             <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                             <Input
-                              type="email"
-                              placeholder="your@email.com"
+                              type="text"
+                              placeholder="your@email.com or +1234567890"
                               className="h-12 pl-10"
                               {...field}
                             />
