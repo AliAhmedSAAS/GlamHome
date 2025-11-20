@@ -83,6 +83,20 @@ export default function Signup() {
         description: "Welcome to Kosmospace!",
       });
 
+      // Check if there's a pending booking
+      const pendingBookingStr = localStorage.getItem('pendingBooking');
+      if (pendingBookingStr) {
+        try {
+          const pendingBooking = JSON.parse(pendingBookingStr);
+          // Redirect to the beautician profile page to complete booking
+          setLocation(`/beauticians/${pendingBooking.beauticianId}`);
+          return;
+        } catch (error) {
+          console.error('Error parsing pending booking:', error);
+          localStorage.removeItem('pendingBooking');
+        }
+      }
+
       // Redirect to customer dashboard
       setLocation("/customer/dashboard");
     } catch (error) {

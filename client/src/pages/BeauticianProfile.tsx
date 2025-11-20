@@ -157,6 +157,47 @@ export default function BeauticianProfile() {
     },
   });
 
+  // Restore pending booking data after authentication
+  useEffect(() => {
+    if (isAuthenticated && beautician) {
+      const pendingBookingStr = localStorage.getItem('pendingBooking');
+      if (pendingBookingStr) {
+        try {
+          const pendingBooking = JSON.parse(pendingBookingStr);
+          
+          // Only restore if it's for this beautician
+          if (pendingBooking.beauticianId === beautician.id) {
+            // Find the service
+            const service = beautician.services?.find((s: any) => s.id === pendingBooking.serviceId);
+            if (service) {
+              setSelectedService(service);
+              form.setValue('serviceId', pendingBooking.serviceId);
+              form.setValue('scheduledDate', new Date(pendingBooking.scheduledDate));
+              form.setValue('scheduledTime', pendingBooking.scheduledTime);
+              form.setValue('location', pendingBooking.location);
+              form.setValue('notes', pendingBooking.notes);
+              
+              // Open the booking dialog
+              setIsBookingDialogOpen(true);
+              
+              // Clear the pending booking data
+              localStorage.removeItem('pendingBooking');
+              
+              toast({
+                title: "Welcome back!",
+                description: "Your booking details have been restored. Please proceed to payment.",
+                variant: "default",
+              });
+            }
+          }
+        } catch (error) {
+          console.error('Error restoring pending booking:', error);
+          localStorage.removeItem('pendingBooking');
+        }
+      }
+    }
+  }, [isAuthenticated, beautician, form, toast]);
+
   // Create booking mutation
   const createBookingMutation = useMutation({
     mutationFn: async (data: any) => {
@@ -200,6 +241,17 @@ export default function BeauticianProfile() {
 
   const onSubmit = (data: BookingFormData) => {
     if (!isAuthenticated) {
+      // Save booking data to localStorage before redirecting
+      const pendingBooking = {
+        beauticianId: beautician.id,
+        serviceId: data.serviceId,
+        scheduledDate: data.scheduledDate.toISOString(),
+        scheduledTime: data.scheduledTime,
+        location: data.location,
+        notes: data.notes || '',
+      };
+      localStorage.setItem('pendingBooking', JSON.stringify(pendingBooking));
+      
       toast({
         title: "Account Required",
         description: "Please create an account to book a service.",
