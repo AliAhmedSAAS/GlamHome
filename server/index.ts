@@ -82,7 +82,7 @@ app.use(globalRateLimiter);
 
 // Request timeout middleware (9 seconds for Vercel)
 app.use((req: Request, res: Response, next: NextFunction) => {
-  const timeout = process.env.NODE_ENV === 'production' ? 9000 : 30000;
+  const timeout = process.env.NODE_ENV === 'production' ? 20000 : 30000;
   
   const timer = setTimeout(() => {
     if (!res.headersSent) {
