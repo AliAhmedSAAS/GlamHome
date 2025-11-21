@@ -13,6 +13,8 @@ import { AnalyticsDashboardService } from "./services/analytics-dashboard";
 import { subDays, startOfDay, endOfDay } from "date-fns";
 import rateLimit from 'express-rate-limit';
 import { generateBlogArticles } from "./services/blogGenerator";
+import { hashPassword } from "./adminAuth";
+import { emailService } from "./services/email";
 
 if (!process.env.STRIPE_SECRET_KEY) {
   throw new Error('Missing required Stripe secret: STRIPE_SECRET_KEY');
@@ -1205,11 +1207,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Approve beautician (admin only)
   app.post('/api/admin/beauticians/:id/approve', isAdmin, async (req, res) => {
     try {
-      const beautician = await storage.approveBeautician(req.params.id);
+      // Get beautician first
+      const beautician = await storage.getBeautician(req.params.id);
       if (!beautician) {
         return res.status(404).json({ message: "Beautician not found" });
       }
-      res.json({ message: "Beautician approved", beautician });
+
+      // Get user info
+      const user = await storage.getUser(beautician.userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // Generate random password
+      const generatePassword = () => {
+        const length = 12;
+        const charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*';
+        let password = '';
+        for (let i = 0; i < length; i++) {
+          password += charset.charAt(Math.floor(Math.random() * charset.length));
+        }
+        return password;
+      };
+
+      const plainPassword = generatePassword();
+      const passwordHash = await hashPassword(plainPassword);
+
+      // Update user with password
+      await storage.updateUserPassword(beautician.userId, passwordHash);
+
+      // Approve beautician
+      const approvedBeautician = await storage.approveBeautician(req.params.id);
+      if (!approvedBeautician) {
+        return res.status(404).json({ message: "Failed to approve beautician" });
+      }
+
+      // Send email with credentials
+      const emailResult = await emailService.sendBeauticianApprovalEmail(
+        user.email!,
+        user.firstName || 'Beautician',
+        plainPassword
+      );
+
+      if (!emailResult.success) {
+        // Log error but don't fail the approval
+        console.error('Failed to send approval email:', emailResult.error);
+        // You might want to store the password temporarily or send via WhatsApp as fallback
+      }
+
+      res.json({
+        message: "Beautician approved successfully",
+        beautician: approvedBeautician,
+        emailSent: emailResult.success,
+        emailError: emailResult.error,
+      });
     } catch (error) {
       console.error("Error approving beautician:", error);
       res.status(500).json({ message: "Failed to approve beautician" });

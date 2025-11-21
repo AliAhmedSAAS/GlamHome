@@ -174,6 +174,18 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
+  async updateUserPassword(userId: string, passwordHash: string): Promise<User | undefined> {
+    const [user] = await db
+      .update(users)
+      .set({
+        passwordHash,
+        updatedAt: new Date(),
+      })
+      .where(eq(users.id, userId))
+      .returning();
+    return user;
+  }
+
   // Beautician operations
   async createBeautician(beauticianData: InsertBeautician): Promise<Beautician> {
     const [beautician] = await db
