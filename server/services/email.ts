@@ -95,7 +95,7 @@ class EmailService {
       if (errorMessage.includes('timeout')) {
         return {
           success: false,
-          error: `Email sending timed out after ${this.EMAIL_TIMEOUT_MS}ms. The email may still be queued for delivery.`,
+          error: `Email sending timed out or failed after ${this.EMAIL_TIMEOUT_MS}ms. The email may still be queued for delivery.`,
         };
       }
       
