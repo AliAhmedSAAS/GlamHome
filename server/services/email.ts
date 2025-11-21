@@ -45,7 +45,7 @@ class EmailService {
     
     try {
       const mailOptions = {
-        from: process.env.SMTP_FROM || process.env.SMTP_USER,
+        from: process.env.SMTP_USER, // Always use SMTP_USER to avoid "send on behalf of" authorization issues
         to: options.to,
         subject: options.subject,
         html: options.html,
