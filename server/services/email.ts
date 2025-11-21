@@ -9,6 +9,7 @@ interface EmailOptions {
 
 class EmailService {
   private transporter: nodemailer.Transporter | null = null;
+  private readonly EMAIL_TIMEOUT_MS = 5000; // 5 seconds timeout for email sending
 
   constructor() {
     // Initialize email transporter using SMTP
@@ -21,6 +22,13 @@ class EmailService {
           user: process.env.SMTP_USER,
           pass: process.env.SMTP_PASS,
         },
+        connectionTimeout: this.EMAIL_TIMEOUT_MS, // 5 seconds to connect
+        socketTimeout: this.EMAIL_TIMEOUT_MS, // 5 seconds for socket operations
+        greetingTimeout: this.EMAIL_TIMEOUT_MS, // 5 seconds for SMTP greeting
+      });
+      logger.info('Email service initialized', { 
+        host: process.env.SMTP_HOST,
+        port: process.env.SMTP_PORT || '587',
       });
     } else {
       logger.warn('Email service not configured - SMTP credentials missing');
@@ -33,6 +41,8 @@ class EmailService {
       return { success: false, error: 'Email service not configured' };
     }
 
+    const startTime = Date.now();
+    
     try {
       const mailOptions = {
         from: process.env.SMTP_FROM || process.env.SMTP_USER,
@@ -41,17 +51,57 @@ class EmailService {
         html: options.html,
       };
 
-      await this.transporter.sendMail(mailOptions);
-      logger.info('Email sent successfully', { to: options.to, subject: options.subject });
+      logger.info('Attempting to send email', { 
+        to: options.to, 
+        subject: options.subject,
+      });
+
+      // Create send promise
+      const sendPromise = this.transporter.sendMail(mailOptions);
+      
+      // Create timeout promise that rejects after timeout duration
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => {
+          reject(new Error(`Email send timeout after ${this.EMAIL_TIMEOUT_MS}ms - SMTP server may be slow or unresponsive`));
+        }, this.EMAIL_TIMEOUT_MS);
+      });
+      
+      // Race between sending and timeout
+      // If timeout wins, we return error immediately to prevent 408 timeout
+      // Note: The sendMail operation may still complete in background, but we don't wait
+      const result = await Promise.race([sendPromise, timeoutPromise]);
+      
+      const duration = Date.now() - startTime;
+      logger.info('Email sent successfully', { 
+        to: options.to, 
+        subject: options.subject,
+        duration: `${duration}ms`,
+        messageId: (result as any)?.messageId,
+      });
+      
       return { success: true };
     } catch (error) {
+      const duration = Date.now() - startTime;
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      
       logger.error('Failed to send email', {
         to: options.to,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        subject: options.subject,
+        error: errorMessage,
+        duration: `${duration}ms`,
       });
+      
+      // Check if it's a timeout error
+      if (errorMessage.includes('timeout')) {
+        return {
+          success: false,
+          error: `Email sending timed out after ${this.EMAIL_TIMEOUT_MS}ms. The email may still be queued for delivery.`,
+        };
+      }
+      
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: errorMessage,
       };
     }
   }
